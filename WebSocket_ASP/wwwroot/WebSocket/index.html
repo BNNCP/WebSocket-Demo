@@ -22,7 +22,6 @@
         <div>
             <button id="player-color">Change Color</button>
         </div>
-        <span>name</span><input type="text" id="txtName" /> <br />
         <span>Msg</span><input type="text" id="txtMsg" /> <br />
         <button id="btnSend">send</button> <br />
         <label id="lbMsg"></label>
@@ -34,7 +33,10 @@
             <span class="dialog-title">對話視窗</span>
             <span class="dialog-close-btn">x</span>
         </div>
-        <div class="dialog-body"></div>
+        <div class="dialog">
+            <div id="dialog" class="dialog-body"></div>
+            <div id="dialog-time" class="dialog-time"></div>
+        </div>
         <div class="dialog-footer">
             <input type="text" id="dialog-input" placeholder="請輸入訊息">
             <button id="dialog-send-btn">發送</button>
@@ -52,7 +54,7 @@
         window.onload = function () {
             //建立一個web socket 連線
             vWebSocket = new WebSocket(server + '/ws');
-            document.getElementById("btnSend").addEventListener("click", sendMsg);
+            document.getElementById("dialog-send-btn").addEventListener("click", sendMsg);
             //如果連線成功
             vWebSocket.onopen = function (e) {
                 console.log('connection start ...');
@@ -64,9 +66,27 @@
             //接收到訊息時
             vWebSocket.onmessage = function (e) {
                 console.log('Recevied Message:' + e.data);
+                let result = JSON.parse(e.data);
                 if (e.data) {
-                    var content = document.getElementById("lbMsg");
-                    content.innerText = content.innerText + '\r\n' + e.data;
+                    switch (result.type) {
+                        case "Chat":
+                            const content = document.getElementById("dialog");
+                            const timecontent = document.getElementById("dialog-time");
+                            var today = new Date();
+                            var date = today.getFullYear() + '-' + (today.getMonth() + 1) + '-' + today.getDate();
+                            var time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
+                            var dateTime = date + ' ' + time;
+                            let message = `${result.client.Uid}: ${result.content}`;
+                            timecontent.innerText = timecontent.innerText + '\r\n' + dateTime;
+                            content.innerText = content.innerText + '\r\n' + message;
+                            break;
+                        case "Connect":
+                            console.log(result.Uid + result.name + " has logged in")
+                            break;
+                        case "Movement":
+                            break
+                    }
+
                 }
             }
             //關閉連線時
@@ -76,13 +96,11 @@
         };
 
         function sendMsg() {
-            var txtName = document.getElementById("txtName").value;
-            var txtMsg = document.getElementById("txtMsg").value;
-            if (txtName) {
+            var txtMsg = document.getElementById("dialog-input").value;
+            if (txtMsg) {
                 var data = {
-                    action: 'sendMsg',
-                    name: txtName,
-                    msg: txtMsg
+                    "type": "Chat",
+                    "data": txtMsg
                 };
                 vWebSocket.send(JSON.stringify(data));
             }

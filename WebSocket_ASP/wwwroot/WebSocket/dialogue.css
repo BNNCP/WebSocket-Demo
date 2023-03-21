@@ -29,11 +29,21 @@
     font-size: 25px;
 }
 
-.dialog-body {
+.dialog {
     overflow-y: auto;
+    margin: 0px;
     padding: 10px;
     height: 100%;
 }
+
+.dialog-body {
+    float: left;
+}
+
+.dialog-time {
+    float: right;
+}
+
 
 .dialog-footer {
     display: flex;

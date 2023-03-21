@@ -1,10 +1,14 @@
-public static class PlayerRef{
-    public static string id { get; set; }
-    public static string name { get; set; }
-    public static string direction { get; set; }
-    public static string color { get; set; }
-    public static int x { get; set; }
-    public static int y { get; set; }
-    public static int coins { get; set; }
+using System;
+using System.Net.WebSockets;
+public class PlayerRef
+{
+    //玩家基本資料
+    public string type { get; set; } = default!;
+    public string Uid { get; set; } = default!;
+    public string name { get; set; } = default!;
+    public string direction { get; set; } = default!;
+    public string color { get; set; } = default!;
+    public int x { get; set; }
+    public int y { get; set; }
 
 }
