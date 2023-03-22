@@ -18,7 +18,7 @@ public class WebSocketController : Controller
 
 
     WebSocketServer wssv = new WebSocketServer("ws://127.0.0.1:7890");
-    [HttpGet("/ws")]
+    [Route("/ws")]
     public async Task Get()
     {
 
