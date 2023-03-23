@@ -22,9 +22,6 @@
         <div>
             <button id="player-color">Change Color</button>
         </div>
-        <span>Msg</span><input type="text" id="txtMsg" /> <br />
-        <button id="btnSend">send</button> <br />
-        <label id="lbMsg"></label>
     </div>
 
 
@@ -48,65 +45,7 @@
 
 
 
-    <script>
-        var server = 'wss://localhost:7184'; //如果开启了https则这里是wss
-        var vWebSocket = null;
-        window.onload = function () {
-            //建立一個web socket 連線
-            vWebSocket = new WebSocket(server + '/ws');
-            document.getElementById("dialog-send-btn").addEventListener("click", sendMsg);
-            //如果連線成功
-            vWebSocket.onopen = function (e) {
-                console.log('connection start ...');
-                console.log(e);
-                console.log(vWebSocket);
-                var content = document.getElementById("lbMsg");
-                content.innerText = content.innerText + '\r\n' + "conection.....";
-            }
-            //接收到訊息時
-            vWebSocket.onmessage = function (e) {
-                console.log('Recevied Message:' + e.data);
-                let result = JSON.parse(e.data);
-                if (e.data) {
-                    switch (result.type) {
-                        case "Chat":
-                            const content = document.getElementById("dialog");
-                            const timecontent = document.getElementById("dialog-time");
-                            var today = new Date();
-                            var date = today.getFullYear() + '-' + (today.getMonth() + 1) + '-' + today.getDate();
-                            var time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
-                            var dateTime = date + ' ' + time;
-                            let message = `${result.client.Uid}: ${result.content}`;
-                            timecontent.innerText = timecontent.innerText + '\r\n' + dateTime;
-                            content.innerText = content.innerText + '\r\n' + message;
-                            break;
-                        case "Connect":
-                            console.log(result.Uid + result.name + " has logged in")
-                            break;
-                        case "Movement":
-                            break
-                    }
-
-                }
-            }
-            //關閉連線時
-            vWebSocket.onclose = function (e) {
-                console.log("connection closed");
-            }
-        };
-
-        function sendMsg() {
-            var txtMsg = document.getElementById("dialog-input").value;
-            if (txtMsg) {
-                var data = {
-                    "type": "Chat",
-                    "data": txtMsg
-                };
-                vWebSocket.send(JSON.stringify(data));
-            }
-        }
-
-    </script>
+    <script src="./WebSocket.js"></script>
     <script src="./KeyPressListener.js"></script>
     <script src="./dialogue.js"></script>
 </body>

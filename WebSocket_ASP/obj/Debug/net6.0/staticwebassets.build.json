@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "F1yxiRjEGHVb6hN6tjcO8+6FaqniI33A6DpO3Bmhzss=",
+  "Hash": "GzACLR+/N6BK56tLDLMts6PJ5ZKrA23Owjx84JReLwg=",
   "Source": "WebSocket_ASP",
   "BasePath": "_content/WebSocket_ASP",
   "Mode": "Default",
@@ -1273,6 +1273,23 @@
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
       "OriginalItemSpec": "wwwroot\\WebSocket\\styles.css"
+    },
+    {
+      "Identity": "E:\\user\\desktop\\專題\\WebSocket_ASP\\WebSocket_ASP\\wwwroot\\WebSocket\\WebSocket.js",
+      "SourceId": "WebSocket_ASP",
+      "SourceType": "Discovered",
+      "ContentRoot": "E:\\user\\desktop\\專題\\WebSocket_ASP\\WebSocket_ASP\\wwwroot\\",
+      "BasePath": "_content/WebSocket_ASP",
+      "RelativePath": "WebSocket/WebSocket.js",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\WebSocket\\WebSocket.js"
     }
   ]
 }

@@ -27,6 +27,14 @@ public class WebSocketController : Controller
         {
             PlayerRef player = new PlayerRef();//生成新玩家
             using var webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
+            MapDirectoriesDTO mapDTO = new MapDirectoriesDTO() { type = "Load", Src = maps.MapDirectory["測試服"].Src, MinX = maps.MapDirectory["測試服"].MinX, MinY = maps.MapDirectory["測試服"].MinY, MaxX = maps.MapDirectory["測試服"].MaxX, MaxY = maps.MapDirectory["測試服"].MaxY, BlockedSpaces = maps.MapDirectory["測試服"].BlockedSpaces, client = maps.MapDirectory["測試服"].client.Values.ToList() };
+
+            var Loadtemp = JsonSerializer.Serialize(mapDTO);
+            var Load = Encoding.UTF8.GetBytes(Loadtemp);
+            await webSocket.SendAsync(new ArraySegment<byte>(Load), WebSocketMessageType.Text, true, CancellationToken.None);
+
+
+
             maps.MapDirectory["測試服"].client.Add(webSocket, player);
             maps.MapDirectory["測試服"].client[webSocket].type = "Connect";
             maps.MapDirectory["測試服"].client[webSocket].Uid = generateID(); //隨機生產ID 之後從ms sql取
@@ -36,12 +44,21 @@ public class WebSocketController : Controller
             maps.MapDirectory["測試服"].client[webSocket].x = 1;
             maps.MapDirectory["測試服"].client[webSocket].y = 4;
 
-            //傳送人物初始數據
-
+            //Connect並傳送人物初始數據
             Console.WriteLine(maps.MapDirectory["測試服"].client[webSocket].name + " Has Connected");
             var json = JsonSerializer.Serialize(maps.MapDirectory["測試服"].client[webSocket]);
             var buffer = Encoding.UTF8.GetBytes(json);
-            await webSocket.SendAsync(new ArraySegment<byte>(buffer), WebSocketMessageType.Text, true, CancellationToken.None);
+            foreach (KeyValuePair<WebSocket, PlayerRef> con in maps.MapDirectory["測試服"].client)
+            {
+                if (con.Key.State != System.Net.WebSockets.WebSocketState.Open)
+                {
+                    continue;
+                }
+                await con.Key.SendAsync(new ArraySegment<byte>(buffer), WebSocketMessageType.Text, true, CancellationToken.None);
+            }
+
+
+
 
             await Echo(webSocket);
         }
@@ -102,6 +119,22 @@ public class WebSocketController : Controller
 
         }
         //關閉連線
+        DiscconnectDTO Disconnect = new DiscconnectDTO();
+        Disconnect.type = "Disconnect";
+        Disconnect.PlayerRef = maps.MapDirectory["測試服"].client[webSocket];
+        var dctemp = JsonSerializer.Serialize(Disconnect);
+        var dc = Encoding.UTF8.GetBytes(dctemp);
+        foreach (KeyValuePair<WebSocket, PlayerRef> con in maps.MapDirectory["測試服"].client)
+        {
+            Console.WriteLine(con.Value.Uid);
+            if (con.Key.State != System.Net.WebSockets.WebSocketState.Open)
+            {
+                continue;
+            }
+            await con.Key.SendAsync(
+           new ArraySegment<byte>(dc), WebSocketMessageType.Text, true, CancellationToken.None);
+        }
+
         Console.WriteLine(maps.MapDirectory["測試服"].client[webSocket].Uid + " has discoonected");
         maps.MapDirectory["測試服"].client.Remove(webSocket);
         await webSocket.CloseAsync(
