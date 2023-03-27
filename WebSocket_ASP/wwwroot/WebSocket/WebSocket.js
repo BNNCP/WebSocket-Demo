@@ -1,8 +1,9 @@
 
 var server = 'wss://localhost:7184'; //如果開啟了https則這裡是wss
 var vWebSocket = null;
-let totalPlayer = {}; //所有角色的資訊
-let playerID; //自己角色的ID
+let playerDom = {}; //所有角色的資訊
+let playerRef = {};//自己角色的資訊
+let players = {};
 let IDempty = true;
 const gameContainer = document.querySelector(".game-container");
 window.onload = function () {
@@ -36,29 +37,36 @@ window.onload = function () {
                     var date = today.getFullYear() + '-' + (today.getMonth() + 1) + '-' + today.getDate();
                     var time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
                     var dateTime = date + ' ' + time;
-                    let message = `${result.client.Uid}: ${result.content}`;
+                    let message = `${result.client.id}: ${result.content}`;
                     timecontent.innerText = timecontent.innerText + '\r\n' + dateTime;
                     content.innerText = content.innerText + '\r\n' + message;
                     break;
                 case "Connect":
                     //訊息屬性是Connect
                     if (IDempty) {
-                        playerID = result.Uid;
+                        playerRef.id = result.id;
                         IDempty = false;
                     }
                     AddPlayer(result);
-                    console.log(result.Uid + " has logged in")
+                    console.log(result.id + " has logged in")
                     break;
                 case "Disconnect":
                     dcPlayer(result.PlayerRef)
                     break
                 case "Movement":
                     //訊息屬性是Movement
+
+                    setDirection(result)
                     break
             }
 
         }
     }
+    new KeyPressListener("ArrowUp", () => handleArrowPress(0, -1))
+    new KeyPressListener("ArrowDown", () => handleArrowPress(0, 1))
+    new KeyPressListener("ArrowLeft", () => handleArrowPress(-1, 0))
+    new KeyPressListener("ArrowRight", () => handleArrowPress(1, 0))
+
     //關閉連線時
     vWebSocket.onclose = function (e) {
         console.log("connection closed");
@@ -68,7 +76,7 @@ window.onload = function () {
 function sendMsg() {
     var txtMsg = document.getElementById("dialog-input").value;
     if (txtMsg) {
-        var data = {
+        let data = {
             "type": "Chat",
             "data": txtMsg
         };
@@ -76,11 +84,64 @@ function sendMsg() {
     }
 }
 
+function sendDirection() {
+    let player = {
+        "type": "Movement",
+        "data": {
+            "type": "Movement",
+            "id": playerRef.id,
+            "name": playerRef.name,
+            "direction": playerRef.direction,
+            "color": playerRef.color,
+            "x": playerRef.x,
+            "y": playerRef.y
+        }
+    }
+    let jtemp = JSON.stringify(player)
+    console.log(player);
+    console.log(jtemp);
+    vWebSocket.send(jtemp);
+}
+
+function setDirection(result) {
+    players[result.id].direction = result.direction;
+    players[result.id].x = result.x;
+    players[result.id].y = result.y;
+    const left = 16 * players[result.id].x + "px";
+    const top = 16 * players[result.id].y - 4 + "px";
+    playerDom[result.id].setAttribute("data-direction", players[result.id].direction);
+    playerDom[result.id].style.transform = `translate3d(${left}, ${top}, 0)`;
+}
+
+function handleArrowPress(xChange = 0, yChange = 0) {
+    const newX = playerRef.x + xChange;
+    const newY = playerRef.y + yChange;
+    if (true) {
+        playerRef.x = newX;
+        playerRef.y = newY;
+        if (xChange === 1) {
+            playerRef.direction = "right";
+        }
+        if (xChange === -1) {
+            playerRef.direction = "left";
+        }
+    }
+    sendDirection();
+}
+
 function AddPlayer(data) {
     const characterElement = document.createElement("div")
-    characterElement.setAttribute('id', `${data.Uid}`)
+    characterElement.setAttribute('id', `${data.id}`)
     characterElement.classList.add("Character", "grid-cell");
-    if (data.Uid === playerID) {
+    if (data.id === playerRef.id) {
+        playerRef = {
+            id: data.id,
+            name: data.name,
+            direction: data.direction,
+            color: data.color,
+            x: data.x,
+            y: data.y
+        }
         characterElement.classList.add("you");
     }
     characterElement.innerHTML = (`
@@ -91,12 +152,20 @@ function AddPlayer(data) {
         </div>
         <div class="Character_you-arrow"></div>
       `);
-    totalPlayer[data.Uid] = characterElement;
+    players[data.id] = {
+        id: data.id,
+        name: data.name,
+        direction: data.direction,
+        color: data.color,
+        x: data.x,
+        y: data.y
+    }
+    playerDom[data.id] = characterElement;
 
     characterElement.querySelector(".Character_name").innerText = data.name;
     characterElement.setAttribute("data-color", data.color);
     characterElement.setAttribute("data-direction", data.direction);
-    const left = 16 * data.x + "px";
+    const left = 16 * data.x + "px"; //16=目前一格的區塊大小
     const top = 16 * data.y - 4 + "px";
     characterElement.style.transform = `translate3d(${left}, ${top}, 0)`;
     gameContainer.appendChild(characterElement);
@@ -106,6 +175,6 @@ function LoadMap() {
 }
 
 function dcPlayer(data) {
-    gameContainer.removeChild(totalPlayer[data.Uid]);
-    delete totalPlayer[data.Uid];
+    gameContainer.removeChild(playerDom[data.id]);
+    delete playerDom[data.id];
 }
