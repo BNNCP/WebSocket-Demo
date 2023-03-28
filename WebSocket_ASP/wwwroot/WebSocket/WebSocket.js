@@ -1,10 +1,12 @@
-
 var server = 'wss://localhost:7184'; //如果開啟了https則這裡是wss
 var vWebSocket = null;
 let playerDom = {}; //所有角色的資訊
 let playerRef = {};//自己角色的資訊
 let players = {};
 let IDempty = true;
+let messageBuffer = '';
+let mapData = {};
+
 const gameContainer = document.querySelector(".game-container");
 window.onload = function () {
     //建立一個web socket 連線
@@ -15,52 +17,56 @@ window.onload = function () {
         console.log('connection start ...');
         console.log(e);
         console.log(vWebSocket);
-        var content = document.getElementById("lbMsg");
     }
     //接收到訊息時
     vWebSocket.onmessage = function (e) {
-        console.log('Recevied Message:' + e.data);
-        let result = JSON.parse(e.data);
-        if (e.data) {
-            switch (result.type) {
-                case "Load":
-                    console.log(result);
-                    for (let i = 0; i < result.client.length; i++) {
-                        AddPlayer(result.client[i]);
-                    }
-                    break;
-                case "Chat":
-                    //訊息屬性Chat
-                    const content = document.getElementById("dialog");
-                    const timecontent = document.getElementById("dialog-time");
-                    var today = new Date();
-                    var date = today.getFullYear() + '-' + (today.getMonth() + 1) + '-' + today.getDate();
-                    var time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
-                    var dateTime = date + ' ' + time;
-                    let message = `${result.client.id}: ${result.content}`;
-                    timecontent.innerText = timecontent.innerText + '\r\n' + dateTime;
-                    content.innerText = content.innerText + '\r\n' + message;
-                    break;
-                case "Connect":
-                    //訊息屬性是Connect
-                    if (IDempty) {
-                        playerRef.id = result.id;
-                        IDempty = false;
-                    }
-                    AddPlayer(result);
-                    console.log(result.id + " has logged in")
-                    break;
-                case "Disconnect":
-                    dcPlayer(result.PlayerRef)
-                    break
-                case "Movement":
-                    //訊息屬性是Movement
-
-                    setDirection(result)
-                    break
-            }
-
+        messageBuffer = e.data;
+        // 如果接收到的訊息還不完整，則繼續等待
+        if (!isCompleteMessage(messageBuffer)) {
+            return;
         }
+
+        let result = JSON.parse(messageBuffer);
+        messageBuffer = '';
+
+        switch (result.type) {
+            case "Load":
+                for (let i = 0; i < result.client.length; i++) {
+                    AddPlayer(result.client[i]);
+                }
+                LoadMap(result);
+                break;
+            case "Chat":
+                //訊息屬性Chat
+                const content = document.getElementById("dialog");
+                const timecontent = document.getElementById("dialog-time");
+                var today = new Date();
+                var date = today.getFullYear() + '-' + (today.getMonth() + 1) + '-' + today.getDate();
+                var time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
+                var dateTime = date + ' ' + time;
+                let message = `${result.client.id}: ${result.content}`;
+                timecontent.innerText = timecontent.innerText + '\r\n' + dateTime;
+                content.innerText = content.innerText + '\r\n' + message;
+                break;
+            case "Connect":
+                //訊息屬性是Connect
+                if (IDempty) {
+                    playerRef.id = result.id;
+                    IDempty = false;
+                }
+                AddPlayer(result);
+                console.log(result.id + " has logged in")
+                break;
+            case "Disconnect":
+                dcPlayer(result.PlayerRef)
+                break
+            case "Movement":
+                //訊息屬性是Movement
+
+                setDirection(result)
+                break
+        }
+
     }
     new KeyPressListener("ArrowUp", () => handleArrowPress(0, -1))
     new KeyPressListener("ArrowDown", () => handleArrowPress(0, 1))
@@ -70,8 +76,8 @@ window.onload = function () {
     //關閉連線時
     vWebSocket.onclose = function (e) {
         console.log("connection closed");
-    }
-};
+    };
+}
 
 function sendMsg() {
     var txtMsg = document.getElementById("dialog-input").value;
@@ -98,8 +104,6 @@ function sendDirection() {
         }
     }
     let jtemp = JSON.stringify(player)
-    console.log(player);
-    console.log(jtemp);
     vWebSocket.send(jtemp);
 }
 
@@ -116,7 +120,7 @@ function setDirection(result) {
 function handleArrowPress(xChange = 0, yChange = 0) {
     const newX = playerRef.x + xChange;
     const newY = playerRef.y + yChange;
-    if (true) {
+    if (!isSolid(newX, newY)) {
         playerRef.x = newX;
         playerRef.y = newY;
         if (xChange === 1) {
@@ -125,8 +129,8 @@ function handleArrowPress(xChange = 0, yChange = 0) {
         if (xChange === -1) {
             playerRef.direction = "left";
         }
+        sendDirection();
     }
-    sendDirection();
 }
 
 function AddPlayer(data) {
@@ -170,11 +174,44 @@ function AddPlayer(data) {
     characterElement.style.transform = `translate3d(${left}, ${top}, 0)`;
     gameContainer.appendChild(characterElement);
 }
-function LoadMap() {
-
+function LoadMap(result) {
+    mapData = {
+        src: result.src,
+        MinX: result.MinX,
+        MaxX: result.MaxX,
+        MinY: result.MinX,
+        MaxY: result.MaxY,
+        BlockedSpaces: result.BlockedSpaces
+    };
 }
 
 function dcPlayer(data) {
     gameContainer.removeChild(playerDom[data.id]);
     delete playerDom[data.id];
+}
+
+function isCompleteMessage(message) {
+    try {
+        JSON.parse(message);
+        return true;
+    } catch (error) {
+        console.log('false');
+        return false;
+    }
+}
+
+function isSolid(x, y) {
+    let blockedNextSpace = false;
+    for (let i = 0; i < mapData.BlockedSpaces.length; i++) {
+        if (x == mapData.BlockedSpaces[i].x && y == mapData.BlockedSpaces[i].y) {
+            blockedNextSpace = true;
+        }
+    }
+    return (
+        blockedNextSpace ||
+        x >= mapData.MaxX ||
+        x < mapData.MinX ||
+        y >= mapData.MaxY ||
+        y < mapData.MinY
+    )
 }

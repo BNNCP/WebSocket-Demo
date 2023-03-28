@@ -67,44 +67,57 @@ public class WebSocketController : Controller
     {
         var buffer = new byte[1024 * 4];
         //等待接收訊息
+        var receiveBuffer = new List<byte>();
         var receiveResult = await webSocket.ReceiveAsync(
              new ArraySegment<byte>(buffer), CancellationToken.None);
         //檢查是否為連線狀態
         while (!receiveResult.CloseStatus.HasValue)
         {
-            var message = Encoding.UTF8.GetString(buffer, 0, receiveResult.Count);
-            Console.WriteLine(message);
-            var jsontemp = JObject.Parse(message);
-            //訊息發到前端
-            var type = jsontemp.Value<string>("type");
-
-            switch (type)
+            receiveBuffer.AddRange(buffer.Take(receiveResult.Count));
+            if (receiveResult.EndOfMessage)
             {
-                case "Chat":
-                    var data = jsontemp.GetValue("data");
-                    ChatContent Chattemp = new ChatContent { type = "Chat", client = maps.MapDirectory["測試服"].client[webSocket], content = data.Value<string>() };
-                    var chatJson = JsonSerializer.Serialize(Chattemp);
-                    buffer = Encoding.UTF8.GetBytes(chatJson);
-                    maps.MapDirectory["測試服"].ChatContent.Add(Chattemp);
-                    Console.WriteLine("Chat");
-                    break;
-                case "Movement":
-                    var data2 = JsonSerializer.Deserialize<MovementDTO?>(message);
-                    if (data2 == null)
-                    {
+                //如果收到了完整的消息，則解析JSON對象
+                var message = Encoding.UTF8.GetString(receiveBuffer.ToArray());
+                Console.WriteLine(message);
+                var jsontemp = JObject.Parse(message);
+                var type = jsontemp.Value<string>("type");
+                //處理JSON對象
+                //...
+                switch (type)
+                {
+                    case "Chat":
+                        var data = jsontemp.GetValue("data");
+                        ChatContent Chattemp = new ChatContent { type = "Chat", client = maps.MapDirectory["測試服"].client[webSocket], content = data.Value<string>() };
+                        var chatJson = JsonSerializer.Serialize(Chattemp);
+                        buffer = Encoding.UTF8.GetBytes(chatJson);
+                        maps.MapDirectory["測試服"].ChatContent.Add(Chattemp);
+                        Console.WriteLine("Chat");
                         break;
-                    }
-                    MovementDTO temp = new MovementDTO();
-                    temp = data2;
-                    maps.MapDirectory["測試服"].client[webSocket].direction = temp.data.direction;
-                    maps.MapDirectory["測試服"].client[webSocket].x = temp.data.x;
-                    maps.MapDirectory["測試服"].client[webSocket].y = temp.data.y;
-                    temp.data.id = maps.MapDirectory["測試服"].client[webSocket].id;
-                    temp.data.type = "Movement";
-                    var movementJson = JsonSerializer.Serialize(temp.data);
-                    buffer = Encoding.UTF8.GetBytes(movementJson);
-                    break;
+                    case "Movement":
+                        var data2 = JsonSerializer.Deserialize<MovementDTO?>(message);
+                        if (data2 == null)
+                        {
+                            break;
+                        }
+                        MovementDTO temp = new MovementDTO();
+                        temp = data2;
+                        maps.MapDirectory["測試服"].client[webSocket].direction = temp.data.direction;
+                        maps.MapDirectory["測試服"].client[webSocket].x = temp.data.x;
+                        maps.MapDirectory["測試服"].client[webSocket].y = temp.data.y;
+                        temp.data.id = maps.MapDirectory["測試服"].client[webSocket].id;
+                        temp.data.type = "Movement";
+                        var movementJson = JsonSerializer.Serialize(temp.data);
+                        Console.WriteLine("movement: " + movementJson);
+                        buffer = Encoding.UTF8.GetBytes(movementJson);
+                        break;
+                }
+                //清空緩存區
+                receiveBuffer.Clear();
             }
+
+
+
+
             foreach (KeyValuePair<WebSocket, PlayerRef> con in maps.MapDirectory["測試服"].client)
             {
                 if (con.Key.State != System.Net.WebSockets.WebSocketState.Open)
