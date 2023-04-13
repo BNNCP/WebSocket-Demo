@@ -1,0 +1,13 @@
+E:\user\desktop\專題\WebSocket_ASP\WebSocket_ASP\obj\Release\net6.0\PubTmp\Out\WebSocket_ASP.exe
+E:\user\desktop\專題\WebSocket_ASP\WebSocket_ASP\obj\Release\net6.0\PubTmp\Out\appsettings.Development.json
+E:\user\desktop\專題\WebSocket_ASP\WebSocket_ASP\obj\Release\net6.0\PubTmp\Out\appsettings.json
+E:\user\desktop\專題\WebSocket_ASP\WebSocket_ASP\obj\Release\net6.0\PubTmp\Out\WebSocket_ASP.dll
+E:\user\desktop\專題\WebSocket_ASP\WebSocket_ASP\obj\Release\net6.0\PubTmp\Out\WebSocket_ASP.deps.json
+E:\user\desktop\專題\WebSocket_ASP\WebSocket_ASP\obj\Release\net6.0\PubTmp\Out\WebSocket_ASP.runtimeconfig.json
+E:\user\desktop\專題\WebSocket_ASP\WebSocket_ASP\obj\Release\net6.0\PubTmp\Out\WebSocket_ASP.pdb
+E:\user\desktop\專題\WebSocket_ASP\WebSocket_ASP\obj\Release\net6.0\PubTmp\Out\Microsoft.AspNet.SignalR.Core.dll
+E:\user\desktop\專題\WebSocket_ASP\WebSocket_ASP\obj\Release\net6.0\PubTmp\Out\Microsoft.Owin.dll
+E:\user\desktop\專題\WebSocket_ASP\WebSocket_ASP\obj\Release\net6.0\PubTmp\Out\Microsoft.Owin.Security.dll
+E:\user\desktop\專題\WebSocket_ASP\WebSocket_ASP\obj\Release\net6.0\PubTmp\Out\Newtonsoft.Json.dll
+E:\user\desktop\專題\WebSocket_ASP\WebSocket_ASP\obj\Release\net6.0\PubTmp\Out\Owin.dll
+E:\user\desktop\專題\WebSocket_ASP\WebSocket_ASP\obj\Release\net6.0\PubTmp\Out\websocket-sharp.dll
