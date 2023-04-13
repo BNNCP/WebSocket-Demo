@@ -78,7 +78,6 @@ public class WebSocketController : Controller
             {
                 //如果收到了完整的消息，則解析JSON對象
                 var message = Encoding.UTF8.GetString(receiveBuffer.ToArray());
-                Console.WriteLine(message);
                 var jsontemp = JObject.Parse(message);
                 var type = jsontemp.Value<string>("type");
                 //處理JSON對象
@@ -107,7 +106,6 @@ public class WebSocketController : Controller
                         temp.data.id = maps.MapDirectory["測試服"].client[webSocket].id;
                         temp.data.type = "Movement";
                         var movementJson = JsonSerializer.Serialize(temp.data);
-                        Console.WriteLine("movement: " + movementJson);
                         buffer = Encoding.UTF8.GetBytes(movementJson);
                         break;
                 }

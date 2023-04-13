@@ -195,7 +195,6 @@ function isCompleteMessage(message) {
         JSON.parse(message);
         return true;
     } catch (error) {
-        console.log('false');
         return false;
     }
 }
