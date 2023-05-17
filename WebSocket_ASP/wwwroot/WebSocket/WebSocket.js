@@ -1,4 +1,6 @@
-var server = 'wss://localhost:7184'; //如果開啟了https則這裡是wss
+
+
+var server = 'wss://localhost:7093'; //如果開啟了https則這裡是wss
 var vWebSocket = null;
 let playerDom = {}; //所有角色的資訊
 let playerRef = {};//自己角色的資訊
@@ -6,12 +8,25 @@ let players = {};
 let IDempty = true;
 let messageBuffer = '';
 let mapData = {};
+let isQueue = false;
+console.log(server);
+let polite;
+const myVideo = document.getElementById("myVideo");
+const remoteVideo = document.getElementById("remoteVideo");
+const btnCamera = document.getElementById('btnCamera');
+const btnMic = document.getElementById('btnMic');
+const btnLeave = document.getElementById('btnLeave');
+
+btnCamera.addEventListener('click', muteCam);
+btnMic.addEventListener('click', muteMic);
+btnLeave.addEventListener('click', leaveRoom);
 
 const gameContainer = document.querySelector(".game-container");
 window.onload = function () {
     //建立一個web socket 連線
-    vWebSocket = new WebSocket(server + '/ws');
+    vWebSocket = new WebSocket(server + '/WebSocket');
     document.getElementById("dialog-send-btn").addEventListener("click", sendMsg);
+    document.getElementById('joinBtn').addEventListener("click", sendQueueRequest);
     //如果連線成功
     vWebSocket.onopen = function (e) {
         console.log('connection start ...');
@@ -31,9 +46,18 @@ window.onload = function () {
 
         switch (result.type) {
             case "Load":
+                myVideo.style.visibility = 'hidden';
+                remoteVideo.style.visibility = 'hidden';
+                btnCamera.style.visibility = 'hidden';
+                btnMic.style.visibility = 'hidden';
+                btnLeave.style.visibility = 'hidden';
+                while (gameContainer.firstChild) {
+                    gameContainer.removeChild(gameContainer.lastChild);
+                }
                 for (let i = 0; i < result.client.length; i++) {
                     AddPlayer(result.client[i]);
                 }
+                console.log(result);
                 LoadMap(result);
                 break;
             case "Chat":
@@ -49,6 +73,7 @@ window.onload = function () {
                 content.innerText = content.innerText + '\r\n' + message;
                 break;
             case "Connect":
+                console.log(result);
                 //訊息屬性是Connect
                 if (IDempty) {
                     playerRef.id = result.id;
@@ -58,12 +83,51 @@ window.onload = function () {
                 console.log(result.id + " has logged in")
                 break;
             case "Disconnect":
+                remoteVideo.style.visibility = 'hidden';
+                console.log(result);
                 dcPlayer(result.PlayerRef)
                 break
             case "Movement":
                 //訊息屬性是Movement
-
+                console.log(result);
                 setDirection(result)
+                break
+            case "Match":
+                // alert("配對成功")
+                isQueue = false;
+                while (gameContainer.firstChild) {
+                    gameContainer.removeChild(gameContainer.lastChild);
+                }
+                alert("操你媽");
+                myVideo.style.visibility = 'visible';
+                remoteVideo.style.visibility = 'visible';
+                btnCamera.style.visibility = 'visible';
+                btnMic.style.visibility = 'visible';
+                btnLeave.style.visibility = 'visible';
+
+
+                LoadMap(result);
+                for (let i = 0; i < result.client.length; i++) {
+                    AddPlayer(result.client[i]);
+                }
+                if (playerRef.gender == 1) {
+                    polite = false;
+                }
+                else if (playerRef.gender == 2) {
+                    polite = true;
+                }
+                mediaOn();
+
+                break
+            case "Wait":
+                console.log("等待配對")
+                isQueue = true;
+                break
+            case "Peer":
+                // console.log(result.candidate);
+                result.description = JSON.parse(result.description);
+                result.candidate = JSON.parse(result.candidate);
+                MatchPlayer(result);
                 break
         }
 
@@ -75,6 +139,7 @@ window.onload = function () {
 
     //關閉連線時
     vWebSocket.onclose = function (e) {
+        IDempty = true;
         console.log("connection closed");
     };
 }
@@ -84,6 +149,7 @@ function sendMsg() {
     if (txtMsg) {
         let data = {
             "type": "Chat",
+            "id": mapData.id,
             "data": txtMsg
         };
         vWebSocket.send(JSON.stringify(data));
@@ -93,10 +159,12 @@ function sendMsg() {
 function sendDirection() {
     let player = {
         "type": "Movement",
+        "mapid": mapData.id,
         "data": {
             "type": "Movement",
             "id": playerRef.id,
             "name": playerRef.name,
+            "gender": playerRef.gender,
             "direction": playerRef.direction,
             "color": playerRef.color,
             "x": playerRef.x,
@@ -135,12 +203,13 @@ function handleArrowPress(xChange = 0, yChange = 0) {
 
 function AddPlayer(data) {
     const characterElement = document.createElement("div")
-    characterElement.setAttribute('id', `${data.id}`)
+    characterElement.setAttribute('id', data.id)
     characterElement.classList.add("Character", "grid-cell");
     if (data.id === playerRef.id) {
         playerRef = {
             id: data.id,
             name: data.name,
+            gender: data.gender,
             direction: data.direction,
             color: data.color,
             x: data.x,
@@ -159,6 +228,7 @@ function AddPlayer(data) {
     players[data.id] = {
         id: data.id,
         name: data.name,
+        gender: data.gender,
         direction: data.direction,
         color: data.color,
         x: data.x,
@@ -176,6 +246,7 @@ function AddPlayer(data) {
 }
 function LoadMap(result) {
     mapData = {
+        id: result.id,
         src: result.src,
         MinX: result.MinX,
         MaxX: result.MaxX,
@@ -195,6 +266,7 @@ function isCompleteMessage(message) {
         JSON.parse(message);
         return true;
     } catch (error) {
+        console.log('false');
         return false;
     }
 }
@@ -214,3 +286,173 @@ function isSolid(x, y) {
         y < mapData.MinY
     )
 }
+
+async function sendQueueRequest() {
+    if (!isQueue) {
+        let data = {
+            "type": "Queue",
+            "mapid": mapData.id,
+        }
+        vWebSocket.send(JSON.stringify(data))
+        isQueue = true;
+    }
+    else {
+        alert("你已經在配對中")
+    }
+}
+
+
+
+
+//===========================================================================================
+// const peer = new RTCPeerConnection(server); // Webrtc配對用
+const ice = {
+    "iceServers": [
+        { "url": "stun:stun.l.google.com:19302" },
+    ]
+};
+const constraints = {
+    audio: {
+        autoGainControl: false,
+        channelCount: 2,
+        echoCancellation: false,
+        googAutoGainControl: false,
+        latency: 0,
+        noiseSuppression: false,
+        sampleRate: 48000,
+        sampleSize: 16,
+        volume: 1.0
+    }, video: true
+};
+
+let localStream;
+let remoteSteam;
+let makingOffer = false;
+let peerChanel = new RTCPeerConnection(ice);
+let stream;
+let MicOn = true;
+let CamOn = true;
+
+function muteMic() {
+    stream.getAudioTracks()[0].enabled = !(stream.getAudioTracks()[0].enabled);
+    MicOn = false;
+
+}
+
+function muteCam() {
+    stream.getVideoTracks()[0].enabled = !(stream.getVideoTracks()[0].enabled);
+    CamOn = false;
+
+}
+
+function leaveRoom() {
+    try {
+        peerChanel.close();
+        stream.getTracks().forEach(track => track.stop());
+    }
+    finally {
+
+        let data = {
+            "type": "Leave",
+            "mapid": mapData.id,
+        }
+        vWebSocket.send(JSON.stringify(data))
+    }
+
+}
+
+async function mediaOn() {
+    try {
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+
+        for (const track of stream.getTracks()) {
+            peerChanel.addTrack(track, stream);
+        }
+        myVideo.srcObject = stream;
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+peerChanel.ontrack = ({ track, streams }) => {
+    track.onunmute = () => {
+        if (remoteVideo.srcObject) {
+            return;
+        }
+        remoteVideo.srcObject = streams[0];
+    }
+}
+
+peerChanel.onnegotiationneeded = async () => {
+    try {
+        makingOffer = true;
+        await peerChanel.setLocalDescription();
+        let data = {
+            "type": "Description",
+            "mapid": mapData.id,
+            "description": peerChanel.localDescription,
+            "candidate": "",
+        }
+        vWebSocket.send(JSON.stringify(data))
+    } catch (err) {
+        console.error(err);
+    } finally {
+        makingOffer = false;
+    }
+};
+
+peerChanel.onicecandidate = ({ candidate }) => {
+    let data = {
+        "type": "Description",
+        "mapid": mapData.id,
+        "description": "",
+        "candidate": candidate
+    }
+    vWebSocket.send(JSON.stringify(data))
+};
+
+
+let ignoreOffer = false;
+async function MatchPlayer(data) {
+    try {
+        if (data.description) {
+            const offerCollision = (data.description.type == "offer") &&
+                (makingOffer || peerChanel.signalingState != "stable");
+
+            ignoreOffer = !polite && offerCollision;
+            if (ignoreOffer) {
+                return;
+            }
+
+            await peerChanel.setRemoteDescription(data.description);
+            if (data.description.type == "offer") {
+                await peerChanel.setLocalDescription();
+                let datatemp = {
+                    "type": "Description",
+                    "mapid": mapData.id,
+                    "description": peerChanel.localDescription,
+                    "candidate": ""
+                }
+                vWebSocket.send(JSON.stringify(datatemp))
+            }
+        } else if (data.candidate) {
+            try {
+                await peerChanel.addIceCandidate(data.candidate);
+            } catch (err) {
+                if (!ignoreOffer) {
+                    throw err;
+                }
+            }
+        }
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+
+// peerChanel.ondatachannel = e => {
+//     const rc = e.channel;
+//     rc.onmessage = e => {
+//         console.log("hi");
+//     }
+// }
